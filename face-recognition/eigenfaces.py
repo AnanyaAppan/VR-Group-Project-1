@@ -4,6 +4,11 @@ import numpy as np
 #Read images 
 img = cv2.imread('something.jpg')
 
+def normalized(a, axis=-1, order=2):
+    l2 = np.atleast_1d(np.linalg.norm(a, order, axis))
+    l2[l2==0] = 1
+    return a / np.expand_dims(l2, axis)
+
 def flatten_image_vectors(image):
     """
     Takes in the image as np array of size 256x256 pixels and returns an np array of sixe 1 x (256x256)
@@ -13,7 +18,9 @@ def flatten_image_vectors(image):
 def stack_vectors(images):
     stack = []
     for img in images:
-        stack.append(flatten_image_vectors(img))
+        img = flatten_image_vectors(img)
+        img = normalized(img,0)
+        stack.append(img)
 
     return np.array(stack)
 
@@ -44,3 +51,28 @@ eig_val_sc, eig_vec_sc = np.linalg.eig(scatter_matrix)
 
 # eigenvectors and eigenvalues for the from the covariance matrix
 eig_val_cov, eig_vec_cov = np.linalg.eig(cov_mat)
+
+def sort_eigenvec_by_eigenval(eigenvals, eigenvecs):
+    """
+    1. Make a list of (eigenvalue, eigenvector) tuples
+    2. Sort the (eigenvalue, eigenvector) tuples from high to low
+    """
+    eig_pairs = [(np.abs(eigenvals[i]), eigenvecs[:,i]) for i in range(len(eigenvals))]
+    eig_pairs.sort(key=lambda x: x[0], reverse=True)
+
+    return  eig_pairs
+
+def choose_k_eigenvecs(eig_pairs, k):
+    stack_tuple = (eig_pairs[0][1].reshape(eig_pairs[0][1].shape[0],1),)
+    for var in range(1,k):
+        stack_tuple += (eig_pairs[var][1].reshape(eig_pairs[var][1].shape[0],1),)
+
+    matrix_w = np.hstack(stack_tuple)
+    return matrix_w
+
+def get_transformed_images(matrix_w,stack):
+    """
+    The dimension of the transformed matrix k x number_of_images  
+    """
+    transformed = matrix_w.T.dot(stack)
+    return transformed
