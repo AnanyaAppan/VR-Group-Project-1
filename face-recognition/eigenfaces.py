@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 #Read images 
-img = cv2.imread('something.jpg')
+# img = cv2.imread('something.jpg')
 
 def normalized(a, axis=-1, order=2):
     l2 = np.atleast_1d(np.linalg.norm(a, order, axis))
@@ -75,4 +75,17 @@ def get_transformed_images(matrix_w,stack):
     The dimension of the transformed matrix k x number_of_images  
     """
     transformed = matrix_w.T.dot(stack)
-    return transformed
+    return transformed.T
+
+def find_closest_image(transformed, image):
+    img = normalized(image,0)
+    y_hat = matrix_w.T.dot(img)
+    argmin = numpy.linalg.norm(y_hat-transformed[0])
+    image_id = 0
+    for var in range(1, transformed.shape[0]):
+        dist = numpy.linalg.norm(y_hat-transformed[var])
+        if dist < argmin:
+            argmin = dist
+            image_id = var
+
+    return image_id
