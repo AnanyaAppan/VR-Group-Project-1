@@ -15,6 +15,8 @@ def read_images(path, folders):
     return data
 
 def make_train_test_set(data, folders):
+    IMG_THRESHOLD = 15
+
     train_labels = []
     train_images = []
     
@@ -24,6 +26,7 @@ def make_train_test_set(data, folders):
     for image_label in folders:
         thresh = min(len(data[image_label]),IMG_THRESHOLD)
         for img in data[image_label]:
+            img = image = cv2.resize(img, (256,256), interpolation = cv2.INTER_AREA) 
             if thresh <= 0:
                 test_labels.append(image_label)
                 test_images.append(img)
@@ -140,8 +143,7 @@ def find_closest_image(transformed, matrix_w, image):
     return image_id
 
 if __name__ == "__main__":
-    IMG_THRESHOLD = 15
-    k = 100
+    k = 300
 
     folders = ["Aadhithya",
            "Abhijith",
@@ -232,3 +234,7 @@ if __name__ == "__main__":
 # With k = 100 and IMG_THRESHOLD = 15:
 # Accuracy with scatter matrix eigen vectors: 0.5339805825242718
 # Accuracy with covariance matrix eigen vectors: 0.5339805825242718
+
+# With k = 100 and IMG_THRESHOLD = 15:
+# Accuracy with scatter matrix eigen vectors: 0.5436893203883495
+# Accuracy with covariance matrix eigen vectors: 0.5436893203883495
