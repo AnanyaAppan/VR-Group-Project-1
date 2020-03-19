@@ -107,10 +107,11 @@ def choose_k_eigenvecs(eig_pairs, k, image_stack):
         stack_tuple += (eig_pairs[var][1].reshape(eig_pairs[var][1].shape[0],1),)
 
     matrix_w = np.hstack(stack_tuple)
-    print("eig_pairs[var][1].shape[0] : ",eig_pairs[var][1].shape[0])
+    # eig_pairs[var][1].shape[0] : 563 (563 when IMG_THRESHOLD = 15)
     for var in range(image_stack.shape[1]-eig_pairs[var][1].shape[0]):
         matrix_w = np.append(matrix_w, np.array([np.zeros(k)]), axis=0)
     
+    # Shape of the matrix W is (65536, 100) (when k = 100)
     print("Shape of the matrix W is {}".format(matrix_w.shape))
     return matrix_w
 
@@ -118,6 +119,7 @@ def get_transformed_images(matrix_w,stack):
     """
     The dimension of the transformed matrix k x number_of_images  
     """
+    # Shape of the transformed matrix is (100, 563) (when k = 100)
     transformed = matrix_w.T.dot(stack)
     print("Shape of the transformed matrix is {}".format(transformed.shape))
     return transformed.T
@@ -126,6 +128,7 @@ def find_closest_image(transformed, matrix_w, image):
     img = flatten_image_vectors(image)
     img = normalized(img,0).T
     y_hat = matrix_w.T.dot(img)
+    y_hat = np.squeeze(y_hat,axis=1)
     argmin = np.linalg.norm(y_hat-transformed[0])
     image_id = 0
     for var in range(1, transformed.shape[0]):
@@ -209,11 +212,13 @@ if __name__ == "__main__":
     transformed1 = get_transformed_images(matrix_w_1, image_stack.T)
     transformed2 = get_transformed_images(matrix_w_2, image_stack.T)
 
+    scatter_matrix_accuracy = 0.0
+    covariance_matrix_accuracy = 0.0
+
     for var in range(len(test_images)):
         img_id1 = find_closest_image(transformed1, matrix_w_1, test_images[var])
         img_id2 = find_closest_image(transformed2, matrix_w_2, test_images[var])
-        scatter_matrix_accuracy = 0.0
-        covariance_matrix_accuracy = 0.0
+        
         if train_labels[img_id1] == test_labels[var]:
             scatter_matrix_accuracy += 1.0
         if train_labels[img_id2] == test_labels[var]:
@@ -223,3 +228,7 @@ if __name__ == "__main__":
 
     print("Accuracy with scatter matrix eigen vectors: {}".format(scatter_matrix_accuracy))
     print("Accuracy with covariance matrix eigen vectors: {}".format(covariance_matrix_accuracy))
+
+# With k = 100 and IMG_THRESHOLD = 15:
+# Accuracy with scatter matrix eigen vectors: 0.5339805825242718
+# Accuracy with covariance matrix eigen vectors: 0.5339805825242718
