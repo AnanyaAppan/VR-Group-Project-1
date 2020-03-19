@@ -4,6 +4,39 @@ import cv2
 from sklearn.cluster import KMeans
 from sklearn.model_selection import StratifiedKFold   
 from sklearn.neighbors import BallTree
+<<<<<<< HEAD
+=======
+import pickle
+import glob
+import cv2
+
+nb_train_samples = 50000 # 3000 training samples
+nb_valid_samples = 10000 # 100 validation samples
+num_classes = 10
+
+
+# In[2]:
+
+def load_cifar10_data(img_rows, img_cols):
+
+    # Load cifar10 training and validation sets
+    (X_train, Y_train), (X_valid, Y_valid) = cifar10.load_data()
+
+    # Resize trainging images
+    X_train = np.array([cv2.resize(img.transpose(1,2,0), (img_rows,img_cols)).transpose(2,0,1) for img in X_train[:nb_train_samples,:,:,:]])
+    X_valid = np.array([cv2.resize(img.transpose(1,2,0), (img_rows,img_cols)).transpose(2,0,1) for img in X_valid[:nb_valid_samples,:,:,:]])
+
+    # Transform targets to keras compatible format
+    Y_train = np_utils.to_categorical(Y_train[:nb_train_samples], num_classes)
+    Y_valid = np_utils.to_categorical(Y_valid[:nb_valid_samples], num_classes)
+
+    return X_train, Y_train, X_valid, Y_valid
+
+
+(x_train, y_train ,x_test, y_test) = load_cifar10_data(150,150)
+print("imported dataset")
+
+>>>>>>> 0749ae32714cc0a693f6ef96007e6ad30993d231
 
 def desSIFT(image):
     sift = cv2.xfeatures2d.SIFT_create()
@@ -144,4 +177,44 @@ for train_ind, validate_ind in cv.split(X, y):
 # print(sc)
 # print("Score: " + str(np.mean(sc)))
 
+<<<<<<< HEAD
+=======
+# In[ ]:
+
+
+sift_des = getDescriptors(np.concatenate((x_train, x_test), axis = 0))
+print("got sift descriptors")
+visDic = kMeans(sift_des, 50)
+print("did kmeans")
+
+
+# In[64]:
+
+
+vlad_des, labels = getVLADDescriptors(x_train, y_train, visDic)
+print ("Hola")
+vlad_des_test, labels_test = getVLADDescriptors(x_test, y_test, visDic)
+print("got vlad descriptors")
+
+# In[ ]:
+
+
+clf = cv2.ml.KNearest_create()
+print("created KNN module")
+clf.train(vlad_des, cv2.ml.ROW_SAMPLE, np.asarray(labels, dtype=np.float32))
+print("trainig KNN on ciphar 10")
+
+
+# In[27]:
+
+
+ret, results, neighbours ,dist = clf.findNearest(vlad_des_test, k=10)
+
+
+# In[ ]:
+
+
+print (results)
+print (labels_test)
+>>>>>>> 0749ae32714cc0a693f6ef96007e6ad30993d231
 
