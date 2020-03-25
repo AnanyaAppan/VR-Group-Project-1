@@ -122,8 +122,9 @@ for label in data:
         data_label[label] = len(data_label)
 
 descriptor_list, labels_list = create_descriptors(data, data_label)
-print(descriptors.shape)
-visDic = MiniBatchKMeans(init='k-means++', n_clusters=50,max_iter=1000, batch_size=1000, n_init=10, max_no_improvement=10, verbose=0).fit(descriptor_list)
+des = descriptor_list.reshape(-1,1)
+print(des.shape)
+visDic = MiniBatchKMeans(init='k-means++', n_clusters=50,max_iter=1000, batch_size=1000, n_init=10, max_no_improvement=10, verbose=0).fit(des)
 
 X = np.array(descriptor_list).astype(int)
 print(descriptor_list[0])
