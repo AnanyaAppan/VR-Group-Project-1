@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import cv2
+import matplotlib.pyplot as plt
 
 def read_images(path, folders):
     data = {}
@@ -76,6 +77,9 @@ def compute_mean_vector(stack):
     
     return np.array(mean_vector)
 
+def compute_mean_image(stack):
+    return compute_mean_vector(stack.T)
+
 def compute_scatter_matrix(stack, mean_vector):
     scatter_matrix = np.zeros((mean_vector.shape[0],mean_vector.shape[0]))
     for var in range(stack.shape[1]):
@@ -127,23 +131,34 @@ def get_transformed_images(matrix_w,stack):
     print("Shape of the transformed matrix is {}".format(transformed.shape))
     return transformed.T
 
+def reconstruct_image(matrix_w, eigencoeff, idx):
+    image = matrix_w.dot(eigencoeff) 
+    image = (image * 256).astype(int)
+    image = image.reshape(256,256)
+    cv2.imwrite("eigenface_"+str(idx)+".jpg", image)
+    
+
 def find_closest_image(transformed, matrix_w, image):
     img = flatten_image_vectors(image)
     img = normalized(img,0).T
+    img = np.squeeze(img, axis=1)
     y_hat = matrix_w.T.dot(img)
-    y_hat = np.squeeze(y_hat,axis=1)
-    argmin = np.linalg.norm(y_hat-transformed[0])
-    image_id = 0
-    for var in range(1, transformed.shape[0]):
-        dist = np.linalg.norm(y_hat-transformed[var])
-        if dist < argmin:
-            argmin = dist
-            image_id = var
 
-    return image_id
+    dist_id_pairs = []
+    for var in range(transformed.shape[0]):
+        dist = np.linalg.norm(y_hat-transformed[var])
+        dist_id_pairs.append((dist, var))
+
+    dist_id_pairs.sort()
+
+    top_10_id = []
+    for var in range(10):
+        top_10_id.append(dist_id_pairs[var][1])
+
+    return top_10_id
 
 if __name__ == "__main__":
-    k = 300
+    k = 100
 
     folders = ["Aadhithya",
            "Abhijith",
@@ -214,22 +229,65 @@ if __name__ == "__main__":
     transformed1 = get_transformed_images(matrix_w_1, image_stack.T)
     transformed2 = get_transformed_images(matrix_w_2, image_stack.T)
 
-    scatter_matrix_accuracy = 0.0
-    covariance_matrix_accuracy = 0.0
+    rank_1_scatter_matrix_accuracy = 0.0
+    rank_1_covariance_matrix_accuracy = 0.0
+
+    top_3_scatter_matrix_accuracy = 0.0
+    top_3_covariance_matrix_accuracy = 0.0
+
+    top_10_scatter_matrix_accuracy = 0.0
+    top_10_covariance_matrix_accuracy = 0.0
 
     for var in range(len(test_images)):
-        img_id1 = find_closest_image(transformed1, matrix_w_1, test_images[var])
-        img_id2 = find_closest_image(transformed2, matrix_w_2, test_images[var])
-        
-        if train_labels[img_id1] == test_labels[var]:
-            scatter_matrix_accuracy += 1.0
-        if train_labels[img_id2] == test_labels[var]:
-            covariance_matrix_accuracy += 1.0
-    scatter_matrix_accuracy = scatter_matrix_accuracy/(len(test_labels))
-    covariance_matrix_accuracy = covariance_matrix_accuracy/(len(test_labels))
 
-    print("Accuracy with scatter matrix eigen vectors: {}".format(scatter_matrix_accuracy))
-    print("Accuracy with covariance matrix eigen vectors: {}".format(covariance_matrix_accuracy))
+        top_10_closest_img1 = find_closest_image(transformed1, matrix_w_1, test_images[var])
+        top_10_closest_img2 = find_closest_image(transformed2, matrix_w_2, test_images[var])
+        
+        if train_labels[top_10_closest_img1[0]] == test_labels[var]:
+            rank_1_scatter_matrix_accuracy += 1.0
+            top_3_scatter_matrix_accuracy += 1.0
+            top_10_scatter_matrix_accuracy += 1.0
+        elif train_labels[top_10_closest_img1[1]] == test_labels[var] or train_labels[top_10_closest_img1[2]] == test_labels[var]:
+            top_3_scatter_matrix_accuracy += 1.0
+            top_10_scatter_matrix_accuracy += 1.0
+        else:
+            for idx in range(3,10):
+                if  train_labels[top_10_closest_img1[idx]] == test_labels[var]:
+                    top_10_scatter_matrix_accuracy += 1.0
+                    break
+
+        if train_labels[top_10_closest_img2[0]] == test_labels[var]:
+            rank_1_covariance_matrix_accuracy += 1.0
+            top_3_covariance_matrix_accuracy += 1.0
+            top_10_covariance_matrix_accuracy += 1.0
+        elif train_labels[top_10_closest_img2[1]] == test_labels[var] or train_labels[top_10_closest_img2[2]] == test_labels[var]:
+            top_3_covariance_matrix_accuracy += 1.0
+            top_10_covariance_matrix_accuracy += 1.0
+        else:
+            for idx in range(3,10):
+                if train_labels[top_10_closest_img2[idx]] == test_labels[var]:
+                    top_10_covariance_matrix_accuracy += 1.0
+                    break
+
+    len_test = len(test_labels)
+    
+    rank_1_scatter_matrix_accuracy = rank_1_scatter_matrix_accuracy/len_test
+    rank_1_covariance_matrix_accuracy = rank_1_covariance_matrix_accuracy/len_test
+
+    top_3_scatter_matrix_accuracy = top_3_scatter_matrix_accuracy/len_test
+    top_3_covariance_matrix_accuracy = top_3_covariance_matrix_accuracy/len_test
+
+    top_10_scatter_matrix_accuracy = top_10_scatter_matrix_accuracy/len_test
+    top_10_covariance_matrix_accuracy = top_10_covariance_matrix_accuracy/len_test
+
+    print("Rank 1 accuracy with scatter matrix eigen vectors: {}".format(rank_1_scatter_matrix_accuracy))
+    print("Rank 1 accuracy with covariance matrix eigen vectors: {}".format(rank_1_covariance_matrix_accuracy))
+
+    print("Top 3 accuracy with scatter matrix eigen vectors: {}".format(top_3_scatter_matrix_accuracy))
+    print("Top 3 accuracy with covariance matrix eigen vectors: {}".format(top_3_covariance_matrix_accuracy))
+
+    print("Top 10 accuracy with scatter matrix eigen vectors: {}".format(top_10_scatter_matrix_accuracy))
+    print("Top 10 accuracy with covariance matrix eigen vectors: {}".format(top_10_covariance_matrix_accuracy))
 
 # With k = 100 and IMG_THRESHOLD = 15:
 # Accuracy with scatter matrix eigen vectors: 0.5339805825242718
